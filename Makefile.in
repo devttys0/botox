@@ -1,0 +1,24 @@
+CC=@CC@
+LDFLAGS=@LDFLAGS@
+CFLAGS=@CFLAGS@
+TARGET=botox
+
+all: $(TARGET)
+
+$(TARGET): exe.o common.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -ldl $(TARGET).c exe.o common.o -o $(TARGET)
+
+exe.o: common.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -c exe.c
+
+common.o:
+	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -c common.c
+
+clean:
+	rm -f $(TARGET)
+	rm -f *.o
+	rm -f config.*
+	rm -rf *.cache
+
+distclean: clean
+	rm -f Makefile
