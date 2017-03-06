@@ -38,12 +38,15 @@ class Architecture(object):
 
 class MIPS(Architecture):
     CODE = [
-                "\x24\x02\x0F\xB4",     # li v0, 0xFB4
-                "\x00\x00\x00\x0C",     # syscall 0     ; getpid()
-                "\x00\x40\x20\x21",     # move a0, v0
-                "\x24\x04\x00\x17",     # li a1, 23
-                "\x24\x02\x0F\xC5",     # li v0, 0xFC5
-                "\x00\x00\x00\x0C",     # syscall 0     ; kill(getpid(), SIGSTOP)
+                "\x24\x02\x0F\xBD",     # li v0, 0xFBD
+                "\x00\x00\x00\x0C",     # syscall 0
+           ]
+
+class ARM(Architecture):
+    CODE = [
+                "\xe3\xa0\x70\x1d",     # mov R7, #29
+                "\xe3\xa0\x00\x01",     # mov R1, #1
+                "\xef\x00\x00\x00",     # svc #0
            ]
 
 class Botox(object):
