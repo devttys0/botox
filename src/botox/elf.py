@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # http://www.skyfree.org/linux/references/ELF_Format.pdf
 import os
 import struct
