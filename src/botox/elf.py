@@ -3,8 +3,18 @@ import os
 import struct
 
 class Elf32_Shdr_Flags(object):
+    '''
+    Convenience wrapper class for reading and writing a section header's flags.
+    '''
 
     def __init__(self, shdr):
+        '''
+        Class constructor.
+
+        @shdr - Instance of Elf32_Shdr.
+
+        Returns None.
+        '''
         self.shdr = shdr
 
     @property
@@ -44,8 +54,19 @@ class Elf32_Shdr_Flags(object):
             self.shdr.sh_flags &= ~4
 
 class Elf32_Shdr(object):
+    '''
+    Class for reading/writing the contents of an ELF section header entry.
+    '''
 
     def __init__(self, elf, n=0):
+        '''
+        Class constructor.
+
+        @elf - Instance of the ELF class.
+        @n   - The index number of the section header (zero-indexed).
+
+        Returns None.
+        '''
         self.elf = elf
         self.index = n
 
@@ -144,8 +165,18 @@ class Elf32_Shdr(object):
         self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+36, value)
 
 class Elf32_Phdr_Flags(object):
+    '''
+    Convenience wrapper class for reading and writing a program header's flags.
+    '''
 
     def __init__(self, phdr):
+        '''
+        Class constructor.
+
+        @phdr - Instance of the ELf32_Phdr class.
+
+        Returns None.
+        '''
         self.phdr = phdr
 
     @property
@@ -185,8 +216,19 @@ class Elf32_Phdr_Flags(object):
             self.phdr.p_flags &= ~0b001
 
 class Elf32_Phdr(object):
+    '''
+    Class for reading/writing the contents of an ELF program header entry.
+    '''
 
     def __init__(self, elf, n=0):
+        '''
+        Class constructor.
+
+        @elf - An instance of the ELF class.
+        @n   - The index number of the program header (zero-indexed).
+
+        Returns None.
+        '''
         self.elf = elf
         self.index = n
         self.flags = Elf32_Phdr_Flags(self)
@@ -248,8 +290,18 @@ class Elf32_Phdr(object):
         self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+28, value)
 
 class Elf32_Ident(object):
+    '''
+    Class for reading/writing the contents of the e_ident section of the ELF header.
+    '''
 
     def __init__(self, elf):
+        '''
+        Class constructor.
+
+        @elf - An instance of the ELF class.
+
+        Returns None.
+        '''
         self.elf = elf
 
     @property
@@ -281,8 +333,18 @@ class Elf32_Ident(object):
         return self.elf.write_byte(6, value)
 
 class Elf32_Header(object):
+    '''
+    Class for reading/writing the contents of an ELF header.
+    '''
 
     def __init__(self, elf):
+        '''
+        Class constructor.
+
+        @elf - An instance of the ELF class.
+
+        Returns None.
+        '''
         self.elf = elf
         self.e_ident = Elf32_Ident(self.elf)
 

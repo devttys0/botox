@@ -11,6 +11,15 @@ class Botox(object):
         self.elfile = elfile
 
     def _resolve_architecture(self, machine_type):
+        '''
+        Returns a subclass of architecture.Architecture that corresponds
+        to the target ELF's architecture.
+
+        @machine_type - The e_ident.ei_machine value from the ELF header.
+
+        Returns a subclass of architecture.Architecture on success.
+        Returns None on failure.
+        '''
         if machine_type == ELF.EM_MIPS:
             return MIPS
         elif machine_type == ELF.EM_ARM:
@@ -19,6 +28,16 @@ class Botox(object):
             return None
 
     def patch(self, payload=None):
+        '''
+        Injects the supplied payload into the target ELF file.
+        The entry point will be modified to point to the injected code.
+
+        @payload - The payload to inject into the ELF file.
+                   If no payload is provided, the default pause payload will be used.
+
+        Returns the new entry point address on success.
+        Returns None on failure, or (more likely) raises an exception.
+        '''
         alignment_size = None
         load_segment_size = None
         load_segment_offset = None
@@ -97,3 +116,4 @@ class Botox(object):
 
             return elf.header.e_entry
 
+        return None
