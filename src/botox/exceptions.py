@@ -1,0 +1,2 @@
+class BotoxException(Exception):
+    pass

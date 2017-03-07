@@ -1,9 +1,7 @@
 import struct
 from elf import ELF
+from exceptions import *
 from architecture import *
-
-class BotoxException(Exception):
-    pass
 
 class Botox(object):
 

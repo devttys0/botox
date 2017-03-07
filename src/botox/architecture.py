@@ -1,15 +1,38 @@
 import struct
 from elf import ELF
+from exceptions import BotoxException
+
+try:
+    from keystone import *
+except ImportError as e:
+    raise BotoxException("Botox requires the keystone module! Please install it from: https://github.com/keystone-engine/keystone")
 
 class Architecture(object):
     '''
     Architecture class. All other arch-specific classes should be subclassed from this.
     '''
-    # Payload code, one instruction per list entry, in big-endian byte order.
-    CODE = []
+    # Payload code, one assembly instruction per list entry. This code will
+    # be assembled at run time by the keystone library. The payload code should
+    # send itself a SIGSTOP signal, then jump to the original program's entry
+    # point; effectively:
+    #
+    #       kill(getpid(), SIGSTOP);
+    #       goto entry_point;
+    #
+    # As the actual entry point address will not be known until runtime, the
+    # literal string "entry_point" may be used in the assembly code. This will
+    # be replaced at runtime byt the hexadecimal entry point address prior to
+    # assembly.
+    ASM = []
+    # The keystone.KS_ARCH_XXX architecture associated with this architecture
+    ARCH = None
+    # The keystone.KS_MODE_XXX mode to be used with this architecture
+    MODE = None
 
     BIG = ELF.ELFDATA2MSB
     LITTLE = ELF.ELFDATA2LSB
+
+    ENTRY_POINT = "entry_point"
 
     def __init__(self, endianess):
         '''
@@ -22,59 +45,65 @@ class Architecture(object):
         '''
         self.endianess = endianess
 
-    def _flip(self, dl):
-        '''
-        Flips the endianess of each instruction.
-
-        @dl - A list of instructions.
-
-        Returns an endian swapped list of instructions.
-        '''
-        fdl = []
-        for d in dl:
-            fdl.append(d[::-1])
-        return fdl
-
     def payload(self, jump_address):
         '''
         Generates a payload that will pause the process execution
-        until a signal is passed to the process (see man 2 pause),
-        then jumps to a specified address.
+        until a SIGCONT signal is passed to the process, at which
+        point the code will jump to a specified address.
 
-        @jump_address - The address to jump to after pause returns.
+        @jump_address - The address to jump to when SIGCONT is encountered.
 
         Returns a string containing the shellcode.
         '''
-        code = []
+        encoding = []
 
-        jump_address_lsb = struct.pack(">H", jump_address & 0xFFFF)
-        jump_address_msb = struct.pack(">H", (jump_address >> 16) & 0xFFFF)
-
-        for line in self.CODE:
-            code.append(line.replace("MSB", jump_address_msb).replace("LSB", jump_address_lsb))
-
+        # Set big/little endian flag for keystone
         if self.endianess == self.BIG:
-            return ''.join(code)
+            endian_mode = KS_MODE_BIG_ENDIAN
         else:
-            return ''.join(self._flip(code))
+            endian_mode = KS_MODE_LITTLE_ENDIAN
 
+        # Instatiate the keystone.Ks class for assembly
+        ks = Ks(self.ARCH, self.MODE | endian_mode)
+
+        # Assemble each line to a list of raw bytes that are appended to the
+        # encoding list. Exceptions in assembling any specific line of code
+        # will be caught and a BotoxException will be raised.
+        for line in self.ASM:
+            assembly = line.replace(self.ENTRY_POINT, hex(jump_address))
+
+            try:
+                (hexbytes, count) = ks.asm(assembly)
+                encoding += hexbytes
+            except KeyboardInterrupt as e:
+                raise e
+            except Exception as e:
+                raise BotoxException("Failed to assemble payload line '%s': %s" % (assembly, str(e)))
+
+        # Convert the list of raw bytes into a string and return
+        return ''.join([chr(byte) for byte in encoding])
 
 class MIPS(Architecture):
-    CODE = [
-                    "\x24\x02\x0F\xBD",     # li v0, 0xFBD
-                    "\x00\x00\x00\x0C",     # syscall 0
-                    "\x3c\x08MSB",          # lui t0, <MSB>
-                    "\x25\x08LSB",          # addiu t0, t0, <LSB>
-                    "\x01\x00\x00\x08",     # jr t0
-                    "\x00\x00\x00\x00",     # nop
+    ARCH = KS_ARCH_MIPS
+    MODE = KS_MODE_MIPS32
+    ASM = [
+                "li $v0, 0xFB4",
+                "syscall 0",        # getpid();
+                "move $a0, $v0",
+                "li $a1, 23",
+                "li $v0, 0xFC5",
+                "syscall 0",        # kill(pid, SIGSTOP);
+                "li $t0, %s" % Architecture.ENTRY_POINT,
+                "jr $t0",           # goto entry_point;
            ]
 
 class ARM(Architecture):
-    CODE = [
-                "\xe3\xa0\x70\x1d",     # mov R7, #29
-                "\xe3\xa0\x00\x01",     # mov R1, #1
-                "\xef\x00\x00\x00",     # svc #0
-                "\xe5\x1f\xf0\x04",     # LDR PC=<value>
-                "MSBLSB",               # <value>
+    ARCH = KS_ARCH_ARM
+    ARCH = KS_MODE_ARM
+    ASM = [
+                "mov R7, #29",
+                "mov R1, #1",
+                "svc #0",
+                "LDR PC=%s" % Architecture.ENTRY_POINT
            ]
 
