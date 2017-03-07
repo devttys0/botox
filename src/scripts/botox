@@ -6,18 +6,13 @@ from botox import Botox
 try:
     elf_file = sys.argv[1]
 except IndexError as e:
-    sys.stderr.write("Usage: %s <input ELF file> [alternate payload file]\n" % sys.argv[0])
+    sys.stderr.write("Usage: %s <input ELF file>\n" % sys.argv[0])
     sys.exit(1)
-
-try:
-    payload = open(sys.argv[2]).read()
-except IndexError as e:
-    payload = None
 
 yn = raw_input("WARNING: This will permanently modify %s without creating a backup. Continue? [y/N] ")
 if not yn.lower().startswith('y'):
     print "Quitting..."
     sys.exit(1)
 
-new_entry_point = Botox(elf_file).patch(payload)
+new_entry_point = Botox(elf_file).patch()
 print "Patched file %s. New entry point is: 0x%.8X" % (elf_file, new_entry_point)
