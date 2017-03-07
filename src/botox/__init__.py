@@ -1,62 +1,22 @@
-#!/usr/bin/env python
 import struct
 from elf import ELF
+from architecture import *
 
 class BotoxException(Exception):
     pass
-
-class Architecture(object):
-    CODE = []
-    BIG = ELF.ELFDATA2MSB
-    LITTLE = ELF.ELFDATA2LSB
-
-    def __init__(self, endianess):
-        self.endianess = endianess
-
-    def _flip(self, dl):
-        fdl = []
-        for d in dl:
-            fdl.append(d[::-1])
-        return fdl
-
-    def payload(self, jump_address):
-        code = []
-
-        jump_address_lsb = struct.pack(">H", jump_address & 0xFFFF)
-        jump_address_msb = struct.pack(">H", (jump_address >> 16) & 0xFFFF)
-
-        for line in self.CODE:
-            code.append(line.replace("MSB", jump_address_msb).replace("LSB", jump_address_lsb))
-
-        if self.endianess == self.BIG:
-            return ''.join(code)
-        else:
-            return ''.join(self._flip(code))
-
-
-class MIPS(Architecture):
-    CODE = [
-                    "\x24\x02\x0F\xBD",     # li v0, 0xFBD
-                    "\x00\x00\x00\x0C",     # syscall 0
-                    "\x3c\x08MSB",          # lui t0, <MSB>
-                    "\x25\x08LSB",          # addiu t0, t0, <LSB>
-                    "\x01\x00\x00\x08",     # jr t0
-                    "\x00\x00\x00\x00",     # nop
-           ]
-
-class ARM(Architecture):
-    CODE = [
-                "\xe3\xa0\x70\x1d",     # mov R7, #29
-                "\xe3\xa0\x00\x01",     # mov R1, #1
-                "\xef\x00\x00\x00",     # svc #0
-                "\xe5\x1f\xf0\x04",     # LDR PC=<value>
-                "MSBLSB",     # <value>
-           ]
 
 class Botox(object):
 
     def __init__(self, elfile):
         self.elfile = elfile
+
+    def _resolve_architecture(self, machine_type):
+        if machine_type == ELF.EM_MIPS:
+            return MIPS
+        elif machine_type == ELF.EM_ARM:
+            return ARM
+        else:
+            return None
 
     def patch(self, payload=None):
         alignment_size = None
@@ -68,7 +28,10 @@ class Botox(object):
         with ELF(self.elfile, read_only=False) as elf:
             # If no payload was specified, use the built-in pause payload
             if payload is None:
-                payload = MIPS(elf.header.e_ident.ei_encoding).payload(elf.header.e_entry)
+                arch = self._resolve_architecture(elf.header.e_machine)
+                if arch is None:
+                    raise BotoxException("No default payload for this architecture!")
+                payload = arch(elf.header.e_ident.ei_encoding).payload(elf.header.e_entry)
 
             # Loop through all the program headers looking for the first executable load segment
             for phdr in elf.program_headers:
@@ -133,9 +96,4 @@ class Botox(object):
             elf.insert(payload_offset, payload)
 
             return elf.header.e_entry
-
-if "__main__" == __name__:
-    import sys
-    new_entry_point = Botox(sys.argv[1]).patch()
-    print "New entry point address: 0x%X" % new_entry_point
 

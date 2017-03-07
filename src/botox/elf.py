@@ -406,6 +406,12 @@ class ELF(object):
     PT_LOPROC = 0x70000000
     PT_HIPROC = 0x7FFFFFFF
 
+    EM_NONE = 0
+    EM_SPARC = 2
+    EM_386 = 3
+    EM_MIPS = 8
+    EM_ARM = 40
+
     def __init__(self, elfile, read_only=False):
         '''
         Class constructor.
