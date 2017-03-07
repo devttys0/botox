@@ -473,6 +473,10 @@ class ELF(object):
     EM_MIPS = 8
     EM_ARM = 40
 
+    ELFCLASSNONE = 0
+    ELFCLASS32 = 1
+    ELFCLASS64 = 2
+
     def __init__(self, elfile, read_only=False):
         '''
         Class constructor.
@@ -513,6 +517,10 @@ class ELF(object):
 
         # Create a ELF header object
         self.header = Elf32_Header(self)
+
+        # Currently, only 32 bit binaries are supported
+        if self.ELFCLASS32 != self.header.e_ident.ei_class:
+            raise BotoxException("Sorry, my developer is a lazy fuck and only programmed me to understand 32 bit binaries!")
 
         # Before doing anything else, we need to know what endianess the target is
         if self.ELFDATA2MSB == self.header.e_ident.ei_encoding:
