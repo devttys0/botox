@@ -1,25 +1,14 @@
 #!/usr/bin/env python
-import os
-import sys
-
-try:
-    from elftools.elf.elffile import ELFFile
-    from elftools.elf.sections import SymbolTableSection
-    from elftools.common.exceptions import ELFError
-except ImportError as e:
-    if "__main__" == __name__:
-        sys.stderr.write("This tool requires the pyelftools Python module. Please install it from https://github.com/eliben/pyelftools.\n")
-        sys.exit(1)
-    else:
-        raise e
+import struct
+from elf import ELF
 
 class BotoxException(Exception):
     pass
 
 class Architecture(object):
     CODE = []
-    BIG = "big"
-    LITTLE = "little"
+    BIG = ELF.ELFDATA2MSB
+    LITTLE = ELF.ELFDATA2LSB
 
     def __init__(self, endianess):
         self.endianess = endianess
@@ -30,16 +19,29 @@ class Architecture(object):
             fdl.append(d[::-1])
         return fdl
 
-    def payload(self):
+    def payload(self, jump_address):
+        code = []
+
+        jump_address_lsb = struct.pack(">H", jump_address & 0xFFFF)
+        jump_address_msb = struct.pack(">H", (jump_address >> 16) & 0xFFFF)
+
+        for line in self.CODE:
+            code.append(line.replace("MSB", jump_address_msb).replace("LSB", jump_address_lsb))
+
         if self.endianess == self.BIG:
-            return ''.join(self.CODE)
+            return ''.join(code)
         else:
-            return ''.join(self._flip(self.CODE))
+            return ''.join(self._flip(code))
+
 
 class MIPS(Architecture):
     CODE = [
-                "\x24\x02\x0F\xBD",     # li v0, 0xFBD
-                "\x00\x00\x00\x0C",     # syscall 0
+                    "\x24\x02\x0F\xBD",     # li v0, 0xFBD
+                    "\x00\x00\x00\x0C",     # syscall 0
+                    "\x3c\x08MSB",          # lui t0, <MSB>
+                    "\x25\x08LSB",          # addiu t0, t0, <LSB>
+                    "\x01\x00\x00\x08",     # jr t0
+                    "\x00\x00\x00\x00",     # nop
            ]
 
 class ARM(Architecture):
@@ -47,146 +49,93 @@ class ARM(Architecture):
                 "\xe3\xa0\x70\x1d",     # mov R7, #29
                 "\xe3\xa0\x00\x01",     # mov R1, #1
                 "\xef\x00\x00\x00",     # svc #0
+                "\xe5\x1f\xf0\x04",     # LDR PC=<value>
+                "MSBLSB",     # <value>
            ]
 
 class Botox(object):
 
-    def __init__(self, elf_file):
-        self.symbols = {}
-        self.segments = []
-        self.abspath = os.path.abspath(elf_file)
+    def __init__(self, elfile):
+        self.elfile = elfile
 
-        with open(self.abspath) as fp:
-            try:
-                elf_header = ELFFile(fp)
-            except ELFError as e:
-                raise BotoxException("Failed to load %s as an ELF file: %s" % (self.abspath, str(e)))
+    def patch(self, payload=None):
+        alignment_size = None
+        load_segment_size = None
+        load_segment_offset = None
+        load_segment_virtual_base_address = None
 
-            self._load_symbols(elf_header)
-            self._load_segments(elf_header)
-            self._detect_architecture(elf_header)
+        # Open the target ELF file for writing
+        with ELF(self.elfile, read_only=False) as elf:
+            # If no payload was specified, use the built-in pause payload
+            if payload is None:
+                payload = MIPS(elf.header.e_ident.ei_encoding).payload(elf.header.e_entry)
 
-    def _detect_architecture(self, elf_header):
-        if elf_header['e_machine'] == "EM_386":
-            self.arch = "X86"
-        else:
-            self.arch = elf_header['e_machine'].replace("EM_", "")
+            # Loop through all the program headers looking for the first executable load segment
+            for phdr in elf.program_headers:
+                if ELF.PT_LOAD == phdr.p_type and True == phdr.flags.execute:
+                    alignment_size = phdr.p_align
 
-        if elf_header['e_ident']["EI_DATA"].endswith("LSB"):
-            self.endianess = Architecture.LITTLE
-        else:
-            self.endianess = Architecture.BIG
+                    load_segment_size = phdr.p_filesz
+                    load_segment_offset = phdr.p_offset
+                    load_segment_virtual_base_address = phdr.p_vaddr - phdr.p_offset
 
-    def _load_symbols(self, elf_header):
-        for section in elf_header.iter_sections():
-            if isinstance(section, SymbolTableSection) and section['sh_entsize'] != 0:
-                for nsym, symbol in enumerate(section.iter_symbols()):
-                    address = symbol['st_value']
-                    self.symbols[symbol.name] = address
+                    phdr.p_memsz += alignment_size
+                    phdr.p_filesz += alignment_size
 
-    def symbol_name_to_virtual_address(self, symbol_name):
-        for (name, address) in self.symbols.iteritems():
-            if name == symbol_name:
-                return address
-        return None
+                    break
 
-    def _load_segments(self, elf_header):
-        for segment in elf_header.iter_segments():
-            self.segments.append(segment)
+            # Sanity checks
+            if None in [alignment_size, load_segment_size, load_segment_offset, load_segment_virtual_base_address]:
+                raise BotoxException("Failed to locate a loadable, executable segment! What is this, an ELF file for ants?!")
+            if len(payload) > alignment_size:
+                raise BotoxException("I'm too lazy to handle payloads larger than the segment alignment size (%d)!" % alignment_size)
 
-    def virtual_address_to_physical_offset(self, vaddr):
-        for segment in self.segments:
-            file_start = segment['p_offset']
-            file_size = segment['p_filesz']
-            mem_start = segment['p_vaddr']
-            mem_size = segment['p_memsz']
+            # Pad our payload out to the alignment size of the load segment
+            payload += "\x00" * (alignment_size - len(payload))
+            payload_size = len(payload)
 
-            if (vaddr >= mem_start) and (vaddr < (mem_start + mem_size)):
-                offset = vaddr - mem_start
-                return (file_start + offset)
+            # By default, the payload is just slapped on the end of the executable
+            # load segment as defined in the program headers.
+            payload_offset = load_segment_offset + load_segment_size
 
-        return None
+            # Each segment defined in the program headers that starts *after*
+            # the offset where our payload will be inserted must have its
+            # starting offset increased by the size of out payload.
+            for phdr in elf.program_headers:
+                if payload_offset <= phdr.p_offset:
+                    phdr.p_offset += payload_size
 
-    def patch(self, out_file=None, address=None, symbol=None, payload=None):
-        if out_file is None:
-            out_file = self.abspath
+            # Each section defined in the section headers that starts *after*
+            # the offset where our payload will be inserted must have its
+            # starting offset increased by the size of out payload.
+            for shdr in elf.section_headers:
+                if payload_offset <= shdr.sh_offset:
+                    shdr.sh_offset += payload_size
 
-        if payload is None:
-            try:
-                arch_obj = getattr(sys.modules[__name__], self.arch)
-                payload = arch_obj(self.endianess).payload()
-            except AttributeError as e:
-                raise BotoxException("Sorry, the %s architecture is not supported at this time!" % self.arch)
+                # The section in which the actual payload should reside must have its size increased
+                # to acommodate the new payload, and must also be marked as executable.
+                if payload_offset > shdr.sh_offset and payload_offset <= (shdr.sh_offset + shdr.sh_size):
+                    shdr.flags.alloc = True
+                    shdr.flags.execute = True
+                    shdr.sh_size += payload_size
 
-        if address is None:
-            if symbol is None:
-                symbol = "main"
+            # If the section headers come after the new payload insertion location
+            # (which they will), update the offset of the section headers by the
+            # size of the payload.
+            if payload_offset <= elf.header.e_shoff:
+                elf.header.e_shoff += payload_size
 
-            address = self.symbol_name_to_virtual_address(symbol)
-            if address is None:
-                raise BotoxException("Failed to locate the %s function in the ELF header symbol table! Please specify the virtual address of the main function manually." % symbol)
+            # Update the program entry point to be the location of our payload
+            elf.header.e_entry = load_segment_virtual_base_address + payload_offset
 
-        file_offset = self.virtual_address_to_physical_offset(address)
-        if file_offset is None:
-            raise BotoxException("The virtual address 0x%X does not exist in this ELF file!" % address)
+            # Now that all header information has been updated to acommodate the
+            # payload, insert the payload into the ELF file.
+            elf.insert(payload_offset, payload)
 
-        with open(self.abspath, 'rb') as fp:
-            data = fp.read(file_offset)
-            data += payload
-            fp.seek(len(data))
-            data += fp.read()
-
-        with open(out_file, 'wb') as fp:
-            fp.write(data)
+            return elf.header.e_entry
 
 if "__main__" == __name__:
-    import getopt
-
-    yes = False
-    symbol = None
-    address = None
-    payload = None
-    input_file = None
-    output_file = None
-
-    (options, rem) = getopt.getopt(sys.argv[1:], "f:a:s:o:p:y", ["file=", "address=", "symbol=", "output=", "payload=", "yes"])
-
-    for (opt, arg) in options:
-        if opt in ("-f", "--file"):
-            input_file = arg
-        elif opt in ("-o", "--output"):
-            output_file = arg
-        elif opt in ("-a", "--address"):
-            address = int(arg, 0)
-        elif opt in ("-p", "--payload"):
-            with open(arg) as fp:
-                payload = fp.read()
-        elif opt in ("-s", "--symbol"):
-            symbol = arg
-        elif opt in ("-y", "--yes"):
-            yes = True
-
-    if input_file is None:
-        sys.stderr.write("Usage: %s [OPTIONS]\n\n" % sys.argv[0])
-        sys.stderr.write("    -f, --file=<input file>\n")
-        sys.stderr.write("    -o, --output=<output file>\n")
-        sys.stderr.write("    -p, --payload=<payload input file>\n")
-        sys.stderr.write("    -a, --address=<virtual address to patch>\n")
-        sys.stderr.write("    -s, --symbol=<name of function to patch>\n")
-        sys.stderr.write("    -y, --yes\n")
-        sys.stderr.write("\n")
-        sys.exit(1)
-
-    if output_file is None and not yes:
-        yn = raw_input("WARNING: You have not specified an output file.\n         This means that the input file (%s) will be modified in place, with no backup.\n         Are you sure you want to do this? [y/N] " % os.path.basename(input_file))
-        if not yn.lower().startswith('y'):
-            sys.stdout.write("Quitting...\n")
-            sys.exit(1)
-
-    try:
-        elf = Botox(input_file)
-        elf.patch(out_file=output_file, address=address, payload=payload, symbol=symbol)
-    except BotoxException as e:
-        sys.stderr.write(str(e) + "\n")
-        sys.exit(1)
+    import sys
+    new_entry_point = Botox(sys.argv[1]).patch()
+    print "New entry point address: 0x%X" % new_entry_point
 
