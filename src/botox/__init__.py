@@ -1,3 +1,4 @@
+import sys
 import struct
 from elf import ELF
 from exceptions import *
@@ -5,8 +6,17 @@ from architecture import *
 
 class Botox(object):
 
-    def __init__(self, elfile):
+    def __init__(self, elfile, verbose=False):
+        '''
+        Class constructor.
+
+        @elfile  - Path to the target ELF file to patch.
+        @verbose - Set to True to enable verbose debug print statements.
+
+        Returns None.
+        '''
         self.elfile = elfile
+        self.verbose = verbose
 
     def _resolve_architecture(self, machine_type):
         '''
@@ -26,6 +36,17 @@ class Botox(object):
             return X86
         else:
             return None
+
+    def _debug_print(self, msg):
+        '''
+        For internal debug use.
+
+        @msg - Message to print to stderr, if self.verbose is True.
+
+        Returns None.
+        '''
+        if True == self.verbose:
+            sys.stderr.write(msg + "\n")
 
     def patch(self, payload=None):
         '''
@@ -55,11 +76,19 @@ class Botox(object):
             # Loop through all the program headers looking for the first executable load segment
             for phdr in elf.program_headers:
                 if ELF.PT_LOAD == phdr.p_type and True == phdr.flags.execute:
+                    self._debug_print("Modifying program header #%d" % phdr.index)
                     alignment_size = phdr.p_align
 
                     load_segment_size = phdr.p_filesz
                     load_segment_offset = phdr.p_offset
                     load_segment_virtual_base_address = phdr.p_vaddr - phdr.p_offset
+
+                    # Don't want to insert multiple SIGSTOPs, do a sanity check before modifying anything.
+                    # Check the first few bytes of the current entry point against the first few bytes of the payload.
+                    # Can't check against the entire payload, since the end of the payload will be jumping to the
+                    # entry point, which will change each time botox modifies an ELF file; 16 bytes should be sufficient.
+                    if elf.read((elf.header.e_entry - load_segment_virtual_base_address), 16) == payload[0:16]:
+                        raise BotoxException("I've already patched this binary, and I shan't do it again!")
 
                     phdr.p_memsz += alignment_size
                     phdr.p_filesz += alignment_size
@@ -79,12 +108,14 @@ class Botox(object):
             # By default, the payload is just slapped on the end of the executable
             # load segment as defined in the program headers.
             payload_offset = load_segment_offset + load_segment_size
+            self._debug_print("Payload will be placed at file offset 0x%X (virtual address: 0x%X)" % (payload_offset, load_segment_virtual_base_address + payload_offset))
 
             # Each segment defined in the program headers that starts *after*
             # the offset where our payload will be inserted must have its
             # starting offset increased by the size of our payload.
             for phdr in elf.program_headers:
                 if payload_offset <= phdr.p_offset:
+                    self._debug_print("Increasing the size of program header #%d by 0x%X" % (phdr.index, payload_size))
                     phdr.p_offset += payload_size
 
             # Each section defined in the section headers that starts *after*
@@ -92,11 +123,13 @@ class Botox(object):
             # starting offset increased by the size of our payload.
             for shdr in elf.section_headers:
                 if payload_offset <= shdr.sh_offset:
+                    self._debug_print("Increasing the size of section header %s by 0x%X" % (shdr.name, payload_size))
                     shdr.sh_offset += payload_size
 
                 # The section in which the actual payload should reside must have its size increased
                 # to acommodate the new payload, and must also be marked as executable.
                 if payload_offset > shdr.sh_offset and payload_offset <= (shdr.sh_offset + shdr.sh_size):
+                    self._debug_print("Payload will reside in section %s, increasing its size by 0x%X" % (shdr.name, payload_size))
                     shdr.flags.alloc = True
                     shdr.flags.execute = True
                     shdr.sh_size += payload_size
@@ -105,13 +138,16 @@ class Botox(object):
             # (which they will), update the offset of the section headers by the
             # size of the payload.
             if payload_offset <= elf.header.e_shoff:
+                self._debug_print("Increasing section header offset by 0x%X" % payload_size)
                 elf.header.e_shoff += payload_size
 
             # Update the program entry point to be the location of our payload
+            self._debug_print("Setting ELF entry point to 0x%X" % (load_segment_virtual_base_address + payload_offset))
             elf.header.e_entry = load_segment_virtual_base_address + payload_offset
 
             # Now that all header information has been updated to acommodate the
             # payload, insert the payload into the ELF file.
+            self._debug_print("Inserting payload of size 0x%X at file offset 0x%X" % (payload_size, payload_offset))
             elf.insert(payload_offset, payload)
 
             return elf.header.e_entry
