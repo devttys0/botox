@@ -33,6 +33,8 @@ class Botox(object):
             return MIPS
         elif machine_type == ELF.EM_ARM:
             return ARM
+        elif machine_type == ELF.EM_X86_64:
+            return X86_64
         elif machine_type == ELF.EM_386:
             if ELF.ELFCLASS64 == ei_class:
                 return X86_64
@@ -70,11 +72,17 @@ class Botox(object):
 
         # Open the target ELF file for writing
         with ELF(self.elfile, read_only=False) as elf:
+            # Relocatable files, shared objects, etc should be ignored.
+            # These can be supported in the future, but relative addressing
+            # support needs to be added to the payload code in architectures.py.
+            if ELF.ET_EXEC != elf.header.e_type:
+                raise BotoxException("Sorry, I only support ELF executable files!")
+
             # If no payload was specified, use the built-in pause payload
             if payload is None:
                 arch = self._resolve_architecture(elf.header.e_machine, elf.header.e_ident.ei_class)
                 if arch is None:
-                    raise BotoxException("Sorry, this architecture is not supported!")
+                    raise BotoxException("Sorry, this architecture [0x%X 0x%X] is not supported!" % (elf.header.e_machine, elf.header.e_ident.ei_class))
                 payload = arch(elf.header.e_ident.ei_encoding).payload(elf.header.e_entry)
 
             # Loop through all the program headers looking for the first executable load segment

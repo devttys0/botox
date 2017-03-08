@@ -541,7 +541,7 @@ class Elf_Header(object):
     @property
     def e_phnum(self):
         if self.elf.ELFCLASS64 == self.e_ident.ei_class:
-            return self.elf._read_half(56)
+            return self.elf.read_half(56)
         else:
             return self.elf.read_half(44)
     @e_phnum.setter
@@ -614,6 +614,14 @@ class ELF(object):
     ELFDATA2LSB = 1
     ELFDATA2MSB = 2
 
+    ET_NONE = 0
+    ET_REL = 1
+    ET_EXEC = 2
+    ET_DYN = 3
+    ET_CORE = 4
+    ET_LOPROC = 0xFF00
+    ET_HIPROC = 0xFFFF
+
     PT_NULL = 0
     PT_LOAD = 1
     PT_DYNAMIC = 2
@@ -631,6 +639,7 @@ class ELF(object):
     EM_386 = 3
     EM_MIPS = 8
     EM_ARM = 40
+    EM_X86_64 = 62
 
     ELFCLASSNONE = 0
     ELFCLASS32 = 1
@@ -872,9 +881,9 @@ class ELF(object):
         self.write(offset, struct.pack("%sL" % self.endianess, value))
 
     def read_double(self, offset):
-        return struct.unpack("%sd" % self.endianess, self.read(offset, 8))[0]
+        return struct.unpack("%sq" % self.endianess, self.read(offset, 8))[0]
     def write_double(self, offset, value):
-        self.write(offset, struct.pack("%sd" % self.endianess, value))
+        self.write(offset, struct.pack("%sq" % self.endianess, value))
 
     def read_address(self, offset):
         if self.ELFCLASS64 == self.header.e_ident.ei_class:

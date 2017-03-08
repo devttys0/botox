@@ -104,7 +104,7 @@ class X86_64(Architecture):
                 "mov rax, 20",
                 "int 0x80",         # getpid();
                 "mov rdi, rax",
-                "rsi, 19",
+                "mov rsi, 19",
                 "mov rax, 37",
                 "int 0x80",         # kill(pid, SIGSTOP);
                 "mov rax, %s" % Architecture.ENTRY_POINT,
