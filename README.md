@@ -31,7 +31,7 @@ $ botox ./path/to/some/file.cgi
 Supported Architectures
 =======================
 
-Botox currently supports 32-bit x86, ARM and MIPS executable, non-relocatable, ELF files. Note that only x86 has been thoroughly tested, but what could possibly go wrong?!
+Botox currently supports x86, x86_64, ARM and MIPS executable, non-relocatable, ELF files. Note that only x86 has been thoroughly tested, but what could possibly go wrong?!
 
 Installation
 ============
