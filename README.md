@@ -41,7 +41,7 @@ Just run the included `setup.py` installation script:
 ```bash
 $ sudo python2 setup.py install
 ```
-```
+
 Dependencies
 ============
 
