@@ -21,7 +21,7 @@ class Architecture(object):
     #
     # As the actual entry point address will not be known until runtime, the
     # literal string "entry_point" may be used in the assembly code. This will
-    # be replaced at runtime byt the hexadecimal entry point address prior to
+    # be replaced at runtime by the hexadecimal entry point address prior to
     # assembly.
     ASM = []
     # The keystone.KS_ARCH_XXX architecture associated with this architecture
@@ -108,7 +108,7 @@ class X86_64(Architecture):
                 "mov rax, 37",
                 "int 0x80",         # kill(pid, SIGSTOP);
                 "mov rax, %s" % Architecture.ENTRY_POINT,
-                "jmp rax",
+                "jmp rax",          # goto entry_point;
           ]
 
 class MIPS(Architecture):

@@ -600,7 +600,7 @@ class ELF(object):
         o self.size            - Returns the size of the ELF file on disk
         o self.header          - EL32_Header object, providing access to the ELF header data
         o self.program_headers - List of Elf_Phdr objects, providing access to the program header data
-        o self.section_headers - List of ELF32_Shdr objects, providing access to the section header data
+        o self.section_headers - List of Elf_Shdr objects, providing access to the section header data
 
     Be careful using this class to access elements of the ELF header!! Most everything is implemented
     as getters/setters that directly access the target file on disk. This means, for example, that
@@ -644,6 +644,9 @@ class ELF(object):
     ELFCLASSNONE = 0
     ELFCLASS32 = 1
     ELFCLASS64 = 2
+
+    SHT_SYMTAB = 2
+    SHT_DYNSYM = 11
 
     def __init__(self, elfile, read_only=False):
         '''

@@ -89,6 +89,7 @@ class Botox(object):
             for phdr in elf.program_headers:
                 if ELF.PT_LOAD == phdr.p_type and True == phdr.flags.execute:
                     self._debug_print("Modifying program header #%d" % phdr.index)
+
                     alignment_size = phdr.p_align
 
                     load_segment_size = phdr.p_filesz
@@ -102,6 +103,7 @@ class Botox(object):
                     if elf.read((elf.header.e_entry - load_segment_virtual_base_address), 16) == payload[0:16]:
                         raise BotoxException("I've already patched this binary, and I shan't do it again!")
 
+                    # Increase this segment's file and memory size so we can shove our payload in it
                     phdr.p_memsz += alignment_size
                     phdr.p_filesz += alignment_size
 
