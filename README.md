@@ -13,9 +13,9 @@ This provides time to attach to the process with a debugger and analyze entries 
 
 Why might this be useful?
 
-1. You wish to debug a process, but starting the process from inside a debugger can modify process environment variables, stack offsets, etc.
-2. You wish to debug a process that is executed by another process (e.g., a CGI file executed by a Web server).
-3. You want to examine the memory layout (/proc/pid/maps) of a short-lived process without requiring a debugger.
+1. You wish to debug a process that is executed by another process (e.g., a CGI file executed by a Web server).
+2. You want to examine the memory layout (`/proc/pid/maps`) of a short-lived process without requiring a debugger.
+3. You wish to debug a process, but starting the process from inside a debugger can modify process environment variables, stack offsets, etc.
 
 These goals are not always easily realized via traditional methods, especially on embedded systems where you may have limited access to debugging tools / toolchains.
 
