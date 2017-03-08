@@ -9,7 +9,6 @@ goto entry_point;
 ```
 
 When the ELF file is loaded, this will immediately pause execution until a SIGCONT signal is sent to the process, at which point execution resumes from the ELF's original entry point.
-This provides time to attach to the process with a debugger and analyze entries in the /proc/pid directory before resuming execution.
 
 Why might this be useful?
 
