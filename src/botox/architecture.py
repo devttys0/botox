@@ -120,6 +120,6 @@ class ARM(Architecture):
                 "mov R1, #19",
                 "mov R7, #0x25",
                 "svc #0",           # kill(pid, SIGSTOP);
-                "LDR PC, =%s" % Architecture.ENTRY_POINT  # goto entry_point
+                "ldr PC, =%s" % Architecture.ENTRY_POINT  # goto entry_point
            ]
 

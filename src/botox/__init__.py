@@ -49,7 +49,7 @@ class Botox(object):
             if payload is None:
                 arch = self._resolve_architecture(elf.header.e_machine)
                 if arch is None:
-                    raise BotoxException("No default payload for this architecture!")
+                    raise BotoxException("Sorry, this architecture is not supported!")
                 payload = arch(elf.header.e_ident.ei_encoding).payload(elf.header.e_entry)
 
             # Loop through all the program headers looking for the first executable load segment
@@ -70,7 +70,7 @@ class Botox(object):
             if None in [alignment_size, load_segment_size, load_segment_offset, load_segment_virtual_base_address]:
                 raise BotoxException("Failed to locate a loadable, executable segment! What is this, an ELF file for ants?!")
             if len(payload) > alignment_size:
-                raise BotoxException("I'm too lazy to handle payloads larger than the segment alignment size (%d)!" % alignment_size)
+                raise BotoxException("Sorry, my developer was too lazy to tell me how to handle payloads larger than the segment alignment size (%d)!" % alignment_size)
 
             # Pad our payload out to the alignment size of the load segment
             payload += "\x00" * (alignment_size - len(payload))
@@ -82,14 +82,14 @@ class Botox(object):
 
             # Each segment defined in the program headers that starts *after*
             # the offset where our payload will be inserted must have its
-            # starting offset increased by the size of out payload.
+            # starting offset increased by the size of our payload.
             for phdr in elf.program_headers:
                 if payload_offset <= phdr.p_offset:
                     phdr.p_offset += payload_size
 
             # Each section defined in the section headers that starts *after*
             # the offset where our payload will be inserted must have its
-            # starting offset increased by the size of out payload.
+            # starting offset increased by the size of our payload.
             for shdr in elf.section_headers:
                 if payload_offset <= shdr.sh_offset:
                     shdr.sh_offset += payload_size
@@ -117,3 +117,4 @@ class Botox(object):
             return elf.header.e_entry
 
         return None
+

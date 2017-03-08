@@ -450,6 +450,14 @@ class ELF(object):
         o self.header          - EL32_Header object, providing access to the ELF header data
         o self.program_headers - List of Elf32_Phdr objects, providing access to the program header data
         o self.section_headers - List of ELF32_Shdr objects, providing access to the section header data
+
+    Be careful using this class to access elements of the ELF header!! Most everything is implemented
+    as getters/setters that directly access the target file on disk. This means, for example, that
+    reading from ELF.header.e_entry results in a read from the file, and assigning a value to
+    ELF.header.e_entry results in that value being written to the file!
+
+    If you want to make *sure* nothing gets accidentally written to disk, set instantiate this class
+    with read_only=True.
     '''
 
     ELFDATA2LSB = 1

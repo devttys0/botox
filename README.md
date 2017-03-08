@@ -13,7 +13,7 @@ This provides time to attach to the process with a debugger and analyze entries 
 
 Why might this be useful?
 
-1. You wish to debug a process, but starting the process from inside a debugger can modify process enviroment variables, stack offsets, etc.
+1. You wish to debug a process, but starting the process from inside a debugger can modify process environment variables, stack offsets, etc.
 2. You wish to debug a process that is executed by another process (e.g., a CGI file executed by a Web server).
 3. You want to examine the memory layout (/proc/pid/maps) of a short-lived process without requiring a debugger.
 
@@ -26,6 +26,11 @@ Simply provide the path to the ELF binary you wish to modify, and Botox will add
 
 ```bash
 $ botox ./path/to/some/file.cgi
+
+Supported Architectures
+=======================
+
+Botox currently supports 32-bit x86, ARM and MIPS executable, non-relocatable, ELF files. Note that only x86 has been thoroughly tested, but what could possibly go wrong?!
 
 Installation
 ============
