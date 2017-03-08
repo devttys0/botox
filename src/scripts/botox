@@ -9,7 +9,7 @@ except IndexError as e:
     sys.stderr.write("Usage: %s <input ELF file>\n" % sys.argv[0])
     sys.exit(1)
 
-yn = raw_input("WARNING: This will permanently modify %s without creating a backup. Continue? [y/N] ")
+yn = raw_input("WARNING: This will permanently modify %s without creating a backup. Continue? [y/N] " % elf_file)
 if not yn.lower().startswith('y'):
     print "Quitting..."
     sys.exit(1)

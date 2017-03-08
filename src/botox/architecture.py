@@ -83,6 +83,20 @@ class Architecture(object):
         # Convert the list of raw bytes into a string and return
         return ''.join([chr(byte) for byte in encoding])
 
+class X86(Architecture):
+    ARCH = KS_ARCH_X86
+    MODE = KS_MODE_32
+    ASM = [
+                "mov eax, 20",
+                "int 0x80",         # getpid();
+                "mov ebx, eax",
+                "mov ecx, 19",
+                "mov eax, 37",
+                "int 0x80",         # kill(pid, SIGSTOP);
+                "mov eax, %s" % Architecture.ENTRY_POINT,
+                "jmp eax",          # goto entry_point
+          ]
+
 class MIPS(Architecture):
     ARCH = KS_ARCH_MIPS
     MODE = KS_MODE_MIPS32

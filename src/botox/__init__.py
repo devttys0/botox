@@ -22,6 +22,8 @@ class Botox(object):
             return MIPS
         elif machine_type == ELF.EM_ARM:
             return ARM
+        elif machine_type == ELF.EM_386:
+            return X86
         else:
             return None
 
