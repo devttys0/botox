@@ -18,12 +18,13 @@ class Botox(object):
         self.elfile = elfile
         self.verbose = verbose
 
-    def _resolve_architecture(self, machine_type):
+    def _resolve_architecture(self, machine_type, ei_class):
         '''
         Returns a subclass of architecture.Architecture that corresponds
         to the target ELF's architecture.
 
-        @machine_type - The e_ident.ei_machine value from the ELF header.
+        @machine_type - The e_machine value from the ELF header.
+        @ei_class     - The e_ident.ei_class value from the ELF header.
 
         Returns a subclass of architecture.Architecture on success.
         Returns None on failure.
@@ -33,7 +34,10 @@ class Botox(object):
         elif machine_type == ELF.EM_ARM:
             return ARM
         elif machine_type == ELF.EM_386:
-            return X86
+            if ELF.ELFCLASS64 == ei_class:
+                return X86_64
+            else:
+                return X86
         else:
             return None
 
@@ -68,7 +72,7 @@ class Botox(object):
         with ELF(self.elfile, read_only=False) as elf:
             # If no payload was specified, use the built-in pause payload
             if payload is None:
-                arch = self._resolve_architecture(elf.header.e_machine)
+                arch = self._resolve_architecture(elf.header.e_machine, elf.header.e_ident.ei_class)
                 if arch is None:
                     raise BotoxException("Sorry, this architecture is not supported!")
                 payload = arch(elf.header.e_ident.ei_encoding).payload(elf.header.e_entry)
