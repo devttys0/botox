@@ -671,8 +671,8 @@ class ELF(object):
 
         Returns None.
         '''
-        # Open the file in unbuffered mode
-        self.fp = open(self.elfile, self.file_mode, 0)
+        # Open the ELF file
+        self._open_file()
 
         # Create a ELF header object
         self.header = Elf_Header(self)
@@ -695,6 +695,14 @@ class ELF(object):
 
     # The below methods are the only ones that should touch self.fp
     # directly! All others should be wrappers around these.
+    def _open_file(self):
+        '''
+        Opens the ELF file whose path is listed in self.elfile.
+
+        Returns None.
+        '''
+        # Open the file in unbuffered mode
+        self.fp = open(self.elfile, self.file_mode, 0)
     def _read_from_file(self, offset, size):
         '''
         Read data from the ELF file.
