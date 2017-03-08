@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 import os
-import sys
-import shutil
-import tempfile
-import subprocess
 from distutils.core import setup, Command
 from distutils.dir_util import remove_tree
 
