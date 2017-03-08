@@ -113,11 +113,13 @@ class MIPS(Architecture):
 
 class ARM(Architecture):
     ARCH = KS_ARCH_ARM
-    ARCH = KS_MODE_ARM
+    MODE = KS_MODE_ARM
     ASM = [
-                "mov R7, #29",
-                "mov R1, #1",
-                "svc #0",
-                "LDR PC=%s" % Architecture.ENTRY_POINT
+                "mov R7, #0x14",
+                "svc #0",           # getpid();
+                "mov R1, #19",
+                "mov R7, #0x25",
+                "svc #0",           # kill(pid, SIGSTOP);
+                "LDR PC, =%s" % Architecture.ENTRY_POINT  # goto entry_point
            ]
 
