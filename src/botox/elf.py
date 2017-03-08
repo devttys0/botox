@@ -530,12 +530,6 @@ class ELF(object):
         if self.ELFCLASS32 != self.header.e_ident.ei_class:
             raise BotoxException("Sorry, my developer is a lazy fuck and only programmed me to understand 32 bit binaries!")
 
-        # Before doing anything else, we need to know what endianess the target is
-        if self.ELFDATA2MSB == self.header.e_ident.ei_encoding:
-            self.endianess = ">"
-        else:
-            self.endianess = "<"
-
         # Grab all the program headers
         self.program_headers = []
         for n in range(0, self.header.e_phnum):
@@ -693,18 +687,51 @@ class ELF(object):
 
         return data
 
+    @property
+    def endianess(self):
+        # Before doing anything else, we need to know what endianess the target is
+        if self.ELFDATA2MSB == self.header.e_ident.ei_encoding:
+            return ">"
+        else:
+            return "<"
+    @endianess.setter
+    def endianess(self, value):
+        # This really is for internal use to interface with the struct module.
+        # You shouldn't be setting it! If you want to modify the ELF file's
+        # endianess flag, access it via self.header.e_ident.ei_encoding.
+        pass
+
     def read_byte(self, offset):
         return ord(self.read(offset, 1))
     def write_byte(self, offset, value):
         self.write(offset, chr(value))
+
+    def read_half(self, offset):
+        return struct.unpack("%sH" % self.endianess, self.read(offset, 2))[0]
+    def write_half(self, offset, value):
+        self.write(offset, struct.pack("%sH" % self.endianess, value))
 
     def read_word(self, offset):
         return struct.unpack("%sL" % self.endianess, self.read(offset, 4))[0]
     def write_word(self, offset, value):
         self.write(offset, struct.pack("%sL" % self.endianess, value))
 
-    def read_half(self, offset):
-        return struct.unpack("%sH" % self.endianess, self.read(offset, 2))[0]
-    def write_half(self, offset, value):
-        self.write(offset, struct.pack("%sH" % self.endianess, value))
+    def read_double(self, offset):
+        return struct.unpack("%sd" % self.endianess, self.read(offset, 8))[0]
+    def write_double(self, offset, value):
+        self.write(offset, struct.pack("%sd" % self.endianess, value))
+
+    def read_address(self, offset):
+        if self.ELFCLASS64 == self.header.e_ident.ei_class:
+            return self.read_double(offset)
+        else:
+            return self.read_word(offset)
+    def write_address(self, offset, value):
+        if self.ELFCLASS64 == self.header.e_ident.ei_class:
+            return self.write_double(offset, value)
+        else:
+            return self.write_word(offset, value)
+
+
+
 
