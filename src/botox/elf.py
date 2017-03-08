@@ -12,7 +12,7 @@ class Elf_Shdr_Flags(object):
         '''
         Class constructor.
 
-        @shdr - Instance of Elf32_Shdr.
+        @shdr - Instance of Elf_Shdr.
 
         Returns None.
         '''
@@ -54,7 +54,7 @@ class Elf_Shdr_Flags(object):
         else:
             self.shdr.sh_flags &= ~4
 
-class Elf32_Shdr(object):
+class Elf_Shdr(object):
     '''
     Class for reading/writing the contents of an ELF section header entry.
     '''
@@ -111,59 +111,107 @@ class Elf32_Shdr(object):
 
     @property
     def sh_flags(self):
-        return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+8)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+8)
+        else:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+8)
     @sh_flags.setter
     def sh_flags(self, value):
-        self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+8, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+8, value)
+        else:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+8, value)
 
     @property
     def sh_addr(self):
-        return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+12)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+16)
+        else:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+12)
     @sh_addr.setter
     def sh_addr(self, value):
-        self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+12, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+16, value)
+        else:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+12, value)
 
     @property
     def sh_offset(self):
-        return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+16)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+24)
+        else:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+16)
     @sh_offset.setter
     def sh_offset(self, value):
-        self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+16, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+24, value)
+        else:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+16, value)
 
     @property
     def sh_size(self):
-        return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+20)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+32)
+        else:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+20)
     @sh_size.setter
     def sh_size(self, value):
-        self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+20, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+32, value)
+        else:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+20, value)
 
     @property
     def sh_link(self):
-        return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+24)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+40)
+        else:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+24)
     @sh_link.setter
     def sh_link(self, value):
-        self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+24, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+40, value)
+        else:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+24, value)
 
     @property
     def sh_info(self):
-        return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+28)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+44)
+        else:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+28)
     @sh_info.setter
     def sh_info(self, value):
-        self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+28, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+44, value)
+        else:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+28, value)
 
     @property
     def sh_addralign(self):
-        return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+32)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+48)
+        else:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+32)
     @sh_addralign.setter
     def sh_addralign(self, value):
-        self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+32, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+48, value)
+        else:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+32, value)
 
     @property
     def sh_entsize(self):
-        return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+36)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+56)
+        else:
+            return self.elf.read_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+36)
     @sh_entsize.setter
     def sh_entsize(self, value):
-        self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+36, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+56, value)
+        else:
+            self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+36, value)
 
 class Elf_Phdr_Flags(object):
     '''
@@ -629,10 +677,6 @@ class ELF(object):
         # Create a ELF header object
         self.header = Elf_Header(self)
 
-        # Currently, only 32 bit binaries are supported
-        if self.ELFCLASS32 != self.header.e_ident.ei_class:
-            raise BotoxException("Sorry, my developer is a lazy fuck and only programmed me to understand 32 bit binaries!")
-
         # Grab all the program headers
         self.program_headers = []
         for n in range(0, self.header.e_phnum):
@@ -641,12 +685,12 @@ class ELF(object):
 
         # Get the strings section header so that subsequent section
         # headers can resolve their section names.
-        self.shstrtab = Elf32_Shdr(self, self.header.e_shstrndx)
+        self.shstrtab = Elf_Shdr(self, self.header.e_shstrndx)
 
         # Grab all the section headers
         self.section_headers = []
         for n in range(0, self.header.e_shnum):
-            shdr = Elf32_Shdr(self, n)
+            shdr = Elf_Shdr(self, n)
             self.section_headers.append(shdr)
 
     # The below methods are the only ones that should touch self.fp
