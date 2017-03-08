@@ -26,6 +26,7 @@ Simply provide the path to the ELF binary you wish to modify, and Botox will add
 
 ```bash
 $ botox ./path/to/some/file.cgi
+```
 
 Supported Architectures
 =======================
