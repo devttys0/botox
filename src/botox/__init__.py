@@ -130,8 +130,8 @@ class Botox(object):
                 # to acommodate the new payload, and must also be marked as executable.
                 if payload_offset > shdr.sh_offset and payload_offset <= (shdr.sh_offset + shdr.sh_size):
                     self._debug_print("Payload will reside in section %s, increasing its size by 0x%X" % (shdr.name, payload_size))
-                    shdr.flags.alloc = True
                     shdr.flags.execute = True
+                    shdr.flags.allocate = True
                     shdr.sh_size += payload_size
 
             # If the section headers come after the new payload insertion location

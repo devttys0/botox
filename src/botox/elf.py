@@ -1,8 +1,9 @@
 # http://www.skyfree.org/linux/references/ELF_Format.pdf
+# https://www.uclibc.org/docs/elf-64-gen.pdf
 import os
 import struct
 
-class Elf32_Shdr_Flags(object):
+class Elf_Shdr_Flags(object):
     '''
     Convenience wrapper class for reading and writing a section header's flags.
     '''
@@ -30,12 +31,12 @@ class Elf32_Shdr_Flags(object):
             self.shdr.sh_flags &= ~1
 
     @property
-    def alloc(self):
+    def allocate(self):
         if (2 & self.shdr.sh_flags):
             return True
         return False
-    @alloc.setter
-    def alloc(self, value):
+    @allocate.setter
+    def allocate(self, value):
         if value == True:
             self.shdr.sh_flags |= 2
         else:
@@ -75,7 +76,7 @@ class Elf32_Shdr(object):
         else:
             self._name = None
 
-        self.flags = Elf32_Shdr_Flags(self)
+        self.flags = Elf_Shdr_Flags(self)
 
     @property
     def name(self):
@@ -164,7 +165,7 @@ class Elf32_Shdr(object):
     def sh_entsize(self, value):
         self.elf.write_word(self.elf.header.e_shoff+(self.elf.header.e_shentsize*self.index)+36, value)
 
-class Elf32_Phdr_Flags(object):
+class Elf_Phdr_Flags(object):
     '''
     Convenience wrapper class for reading and writing a program header's flags.
     '''
@@ -215,7 +216,7 @@ class Elf32_Phdr_Flags(object):
         else:
             self.phdr.p_flags &= ~0b001
 
-class Elf32_Phdr(object):
+class Elf_Phdr(object):
     '''
     Class for reading/writing the contents of an ELF program header entry.
     '''
@@ -231,7 +232,7 @@ class Elf32_Phdr(object):
         '''
         self.elf = elf
         self.index = n
-        self.flags = Elf32_Phdr_Flags(self)
+        self.flags = Elf_Phdr_Flags(self)
 
     @property
     def p_type(self):
@@ -242,54 +243,96 @@ class Elf32_Phdr(object):
 
     @property
     def p_offset(self):
-        return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+4)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+8)
+        else:
+            return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+4)
     @p_offset.setter
     def p_offset(self, value):
-        self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+4, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+8, value)
+        else:
+            self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+4, value)
 
     @property
     def p_vaddr(self):
-        return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+8)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+16)
+        else:
+            return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+8)
     @p_vaddr.setter
     def p_vaddr(self, value):
-        self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+8, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+16, value)
+        else:
+            self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+8, value)
 
     @property
     def p_paddr(self):
-        return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+12)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+24)
+        else:
+            return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+12)
     @p_paddr.setter
     def p_paddr(self, value):
-        self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+12, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+24, value)
+        else:
+            self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+12, value)
 
     @property
     def p_filesz(self):
-        return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+16)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+32)
+        else:
+            return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+16)
     @p_filesz.setter
     def p_filesz(self, value):
-        self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+16, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+32, value)
+        else:
+            self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+16, value)
 
     @property
     def p_memsz(self):
-        return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+20)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+40)
+        else:
+            return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+20)
     @p_memsz.setter
     def p_memsz(self, value):
-        self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+20, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+40, value)
+        else:
+            self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+20, value)
 
     @property
     def p_flags(self):
-        return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+24)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+4)
+        else:
+            return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+24)
     @p_flags.setter
     def p_flags(self, value):
-        self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+24, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+4, value)
+        else:
+            self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+24, value)
 
     @property
     def p_align(self):
-        return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+28)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            return self.elf.read_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+48)
+        else:
+            return self.elf.read_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+28)
     @p_align.setter
     def p_align(self, value):
-        self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+28, value)
+        if self.elf.ELFCLASS64 == self.elf.header.e_ident.ei_class:
+            self.elf.write_double(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+48, value)
+        else:
+            self.elf.write_word(self.elf.header.e_phoff+(self.elf.header.e_phentsize*self.index)+28, value)
 
-class Elf32_Ident(object):
+class Elf_Ident(object):
     '''
     Class for reading/writing the contents of the e_ident section of the ELF header.
     '''
@@ -332,7 +375,7 @@ class Elf32_Ident(object):
     def ei_version(self, value):
         return self.elf.write_byte(6, value)
 
-class Elf32_Header(object):
+class Elf_Header(object):
     '''
     Class for reading/writing the contents of an ELF header.
     '''
@@ -346,7 +389,7 @@ class Elf32_Header(object):
         Returns None.
         '''
         self.elf = elf
-        self.e_ident = Elf32_Ident(self.elf)
+        self.e_ident = Elf_Ident(self.elf)
 
     @property
     def e_type(self):
@@ -371,73 +414,133 @@ class Elf32_Header(object):
 
     @property
     def e_entry(self):
-        return self.elf.read_word(24)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf.read_double(24)
+        else:
+            return self.elf.read_word(24)
     @e_entry.setter
     def e_entry(self, value):
-        self.elf.write_word(24, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_double(24, value)
+        else:
+            self.elf.write_word(24, value)
 
     @property
     def e_phoff(self):
-        return self.elf.read_word(28)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf.read_double(32)
+        else:
+            return self.elf.read_word(28)
     @e_phoff.setter
     def e_phoff(self, value):
-        self.elf.write_word(28, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_double(32)
+        else:
+            self.elf.write_word(28, value)
 
     @property
     def e_shoff(self):
-        return self.elf.read_word(32)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf.read_double(40)
+        else:
+            return self.elf.read_word(32)
     @e_shoff.setter
     def e_shoff(self, value):
-        self.elf.write_word(32, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_double(40, value)
+        else:
+            self.elf.write_word(32, value)
 
     @property
     def e_flags(self):
-        return self.elf.read_word(36)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf_read_word(48)
+        else:
+            return self.elf.read_word(36)
     @e_flags.setter
     def e_flags(self, value):
-        self.elf.write_word(36, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_word(48, value)
+        else:
+            self.elf.write_word(36, value)
 
     @property
     def e_ehsize(self):
-        return self.elf.read_half(40)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf.read_half(52)
+        else:
+            return self.elf.read_half(40)
     @e_ehsize.setter
     def e_ehsize(self, value):
-        self.elf.write_half(40, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_half(52, value)
+        else:
+            self.elf.write_half(40, value)
 
     @property
     def e_phentsize(self):
-        return self.elf.read_half(42)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf.read_half(54)
+        else:
+            return self.elf.read_half(42)
     @e_phentsize.setter
     def e_phentsize(self, value):
-        self.elf.write_half(42, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_half(54, value)
+        else:
+            self.elf.write_half(42, value)
 
     @property
     def e_phnum(self):
-        return self.elf.read_half(44)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf._read_half(56)
+        else:
+            return self.elf.read_half(44)
     @e_phnum.setter
     def e_phnum(self, value):
-        self.elf.write_half(44, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_half(56, value)
+        else:
+            self.elf.write_half(44, value)
 
     @property
     def e_shentsize(self):
-        return self.elf.read_half(46)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf.read_half(58)
+        else:
+            return self.elf.read_half(46)
     @e_shentsize.setter
     def e_shentsize(self, value):
-        self.elf.write_half(46, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_half(58, value)
+        else:
+            self.elf.write_half(46, value)
 
     @property
     def e_shnum(self):
-        return self.elf.read_half(48)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf.read_half(60)
+        else:
+            return self.elf.read_half(48)
     @e_shnum.setter
     def e_shnum(self, value):
-        self.elf.write_half(48, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_half(60, value)
+        else:
+            self.elf.write_half(48, value)
 
     @property
     def e_shstrndx(self):
-        return self.elf.read_half(50)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            return self.elf.read_half(62)
+        else:
+            return self.elf.read_half(50)
     @e_shstrndx.setter
     def e_shstrndx(self, value):
-        self.elf.write_half(50, value)
+        if self.elf.ELFCLASS64 == self.e_ident.ei_class:
+            self.elf.write_half(62, value)
+        else:
+            self.elf.write_half(50, value)
 
 class ELF(object):
     '''
@@ -448,7 +551,7 @@ class ELF(object):
 
         o self.size            - Returns the size of the ELF file on disk
         o self.header          - EL32_Header object, providing access to the ELF header data
-        o self.program_headers - List of Elf32_Phdr objects, providing access to the program header data
+        o self.program_headers - List of Elf_Phdr objects, providing access to the program header data
         o self.section_headers - List of ELF32_Shdr objects, providing access to the section header data
 
     Be careful using this class to access elements of the ELF header!! Most everything is implemented
@@ -524,7 +627,7 @@ class ELF(object):
         self.fp = open(self.elfile, self.file_mode, 0)
 
         # Create a ELF header object
-        self.header = Elf32_Header(self)
+        self.header = Elf_Header(self)
 
         # Currently, only 32 bit binaries are supported
         if self.ELFCLASS32 != self.header.e_ident.ei_class:
@@ -533,7 +636,7 @@ class ELF(object):
         # Grab all the program headers
         self.program_headers = []
         for n in range(0, self.header.e_phnum):
-            phdr = Elf32_Phdr(self, n)
+            phdr = Elf_Phdr(self, n)
             self.program_headers.append(phdr)
 
         # Get the strings section header so that subsequent section
