@@ -607,8 +607,8 @@ class ELF(object):
     reading from ELF.header.e_entry results in a read from the file, and assigning a value to
     ELF.header.e_entry results in that value being written to the file!
 
-    If you want to make *sure* nothing gets accidentally written to disk, set instantiate this class
-    with read_only=True.
+    If you want to make *sure* nothing gets accidentally written to disk, instantiate this class with
+    read_only=True.
     '''
 
     ELFDATA2LSB = 1
