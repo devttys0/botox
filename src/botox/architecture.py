@@ -28,6 +28,9 @@ class Architecture(object):
     ARCH = None
     # The keystone.KS_MODE_XXX mode to be used with this architecture
     MODE = None
+    # The machine type of the target architecture, as defined in the ELF header
+    # See the elf.ELF.EM_XXX constants.
+    MACHINE = None
 
     BIG = ELF.ELFDATA2MSB
     LITTLE = ELF.ELFDATA2LSB
@@ -84,6 +87,7 @@ class Architecture(object):
         return ''.join([chr(byte) for byte in encoding])
 
 class X86(Architecture):
+    MACHINE = ELF.EM_386
     ARCH = KS_ARCH_X86
     MODE = KS_MODE_32
     ASM = [
@@ -98,6 +102,7 @@ class X86(Architecture):
           ]
 
 class X86_64(Architecture):
+    MACHINE = ELF.EM_X86_64
     ARCH = KS_ARCH_X86
     MODE = KS_MODE_64
     ASM = [
@@ -112,6 +117,7 @@ class X86_64(Architecture):
           ]
 
 class MIPS(Architecture):
+    MACHINE = ELF.EM_MIPS
     ARCH = KS_ARCH_MIPS
     MODE = KS_MODE_MIPS32
     ASM = [
@@ -126,6 +132,7 @@ class MIPS(Architecture):
            ]
 
 class ARM(Architecture):
+    MACHINE = ELF.EM_ARM
     ARCH = KS_ARCH_ARM
     MODE = KS_MODE_ARM
     ASM = [

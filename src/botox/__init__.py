@@ -1,8 +1,9 @@
 import sys
 import struct
+
+import architecture
 from elf import ELF
-from exceptions import *
-from architecture import *
+from exceptions import BotoxException
 
 class Botox(object):
 
@@ -18,30 +19,33 @@ class Botox(object):
         self.elfile = elfile
         self.verbose = verbose
 
-    def _resolve_architecture(self, machine_type, ei_class):
+    def _resolve_architecture(self, machine_type):
         '''
         Returns a subclass of architecture.Architecture that corresponds
         to the target ELF's architecture.
 
         @machine_type - The e_machine value from the ELF header.
-        @ei_class     - The e_ident.ei_class value from the ELF header.
 
         Returns a subclass of architecture.Architecture on success.
         Returns None on failure.
         '''
-        if machine_type == ELF.EM_MIPS:
-            return MIPS
-        elif machine_type == ELF.EM_ARM:
-            return ARM
-        elif machine_type == ELF.EM_X86_64:
-            return X86_64
-        elif machine_type == ELF.EM_386:
-            if ELF.ELFCLASS64 == ei_class:
-                return X86_64
-            else:
-                return X86
-        else:
-            return None
+        # Loop through all the attributes in the architecture.py module
+        # and find the Architecture subclass that matches the target
+        # ELF's machine type.
+        for attribute_name in dir(architecture):
+            try:
+                try:
+                    attribute = getattr(architecture, attribute_name)
+                except AttributeError as e:
+                    continue
+
+                if issubclass(attribute, architecture.Architecture):
+                    if attribute.MACHINE == machine_type:
+                        return attribute
+            except TypeError as e:
+                continue
+
+        return None
 
     def _debug_print(self, msg):
         '''
@@ -80,7 +84,7 @@ class Botox(object):
 
             # If no payload was specified, use the built-in pause payload
             if payload is None:
-                arch = self._resolve_architecture(elf.header.e_machine, elf.header.e_ident.ei_class)
+                arch = self._resolve_architecture(elf.header.e_machine)
                 if arch is None:
                     raise BotoxException("Sorry, this architecture [0x%X 0x%X] is not supported!" % (elf.header.e_machine, elf.header.e_ident.ei_class))
                 payload = arch(elf.header.e_ident.ei_encoding).payload(elf.header.e_entry)
