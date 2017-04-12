@@ -106,12 +106,12 @@ class X86_64(Architecture):
     ARCH = KS_ARCH_X86
     MODE = KS_MODE_64
     ASM = [
-                "mov rax, 20",
-                "int 0x80",         # getpid();
+                "mov eax, 0x27",
+                "syscall",          # getpid();
                 "mov rdi, rax",
                 "mov rsi, 19",
-                "mov rax, 37",
-                "int 0x80",         # kill(pid, SIGSTOP);
+                "mov rax, 0x3E",
+                "syscall",          # kill(pid, SIGSTOP);
                 "mov rax, %s" % Architecture.ENTRY_POINT,
                 "jmp rax",          # goto entry_point;
           ]
