@@ -33,7 +33,7 @@ class CleanCommand(Command):
 
 # Install the module, script, and support files
 setup(name = MODULE_NAME,
-      version = "0.1b",
+      version = "0.2b",
       description = "ELF patching tool",
       author = "Craig Heffner",
       url = "https://github.com/devttys0/%s" % MODULE_NAME,

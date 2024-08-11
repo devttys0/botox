@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python3
 import sys
 from botox import Botox, BotoxException
 
@@ -9,14 +8,14 @@ except IndexError as e:
     sys.stderr.write("Usage: %s <input ELF file>\n" % sys.argv[0])
     sys.exit(1)
 
-yn = raw_input("WARNING: This will permanently modify %s without creating a backup. Continue? [y/N] " % elf_file)
+yn = input("WARNING: This will permanently modify %s without creating a backup. Continue? [y/N] " % elf_file)
 if not yn.lower().startswith('y'):
-    print "Quitting..."
+    print("Quitting...")
     sys.exit(1)
 
 try:
     new_entry_point = Botox(elf_file).patch()
-    print "Patched file %s. New entry point is: 0x%.8X" % (elf_file, new_entry_point)
+    print("Patched file %s. New entry point is: 0x%.8X" % (elf_file, new_entry_point))
     sys.exit(0)
 except BotoxException as e:
     sys.stderr.write(str(e) + "\n")

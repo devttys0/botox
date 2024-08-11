@@ -783,6 +783,8 @@ class ELF(object):
 
         Returns None.
         '''
+        if type(data) == str:
+            data = data.encode('latin-1')
         elf_file_contents = self.read(0, offset)
         elf_file_contents += data
         elf_file_contents += self.read(offset, (self.size-offset))
@@ -821,7 +823,7 @@ class ELF(object):
 
         Returns None.
         '''
-        return self.write(offset, data + "\x00")
+        return self.write(offset, data + b"\x00")
 
     def read_string(self, offset, size=None):
         '''
@@ -836,13 +838,13 @@ class ELF(object):
         # Read in blocks of 1024. Better for disk I/O than doing one byte at a time.
         block_size = 1024
         i = 0
-        data = ""
+        data = b""
 
         if size is None:
             while True:
                 chunk = self.read(offset+i, block_size)
-                if "\x00" in chunk:
-                    data += chunk.split("\x00")[0]
+                if b"\x00" in chunk:
+                    data += chunk.split(b"\x00")[0]
                     break
                 elif not chunk:
                     break

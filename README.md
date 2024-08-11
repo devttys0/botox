@@ -30,19 +30,22 @@ $ botox ./path/to/some/file.cgi
 Supported Architectures
 =======================
 
-Botox currently supports x86, x86_64, ARM and MIPS Linux ELF files (executable, non-relocatable).
+Botox currently supports x86, x86_64, ARM, and MIPS Linux ELF files (executable, non-relocatable).
 
 Installation
 ============
 
-Just run the included `setup.py` installation script:
+Install the `Botox` Python module and script using `pip`:
 
 ```bash
-$ sudo python2 setup.py install
+$ sudo pip3 install .
 ```
 
 Dependencies
 ============
 
-Botox is written in Python, and requires the [keystone assembler](http://www.keystone-engine.org/) library and Python module.
+Botox is written for Python3, and requires the [keystone assembler](http://www.keystone-engine.org/) library and Python module.
 
+```bash
+$ sudo pip3 install keystone-engine
+```

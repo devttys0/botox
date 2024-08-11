@@ -1,6 +1,6 @@
 import struct
-from elf import ELF
-from exceptions import BotoxException
+from .elf import ELF
+from .exceptions import BotoxException
 
 try:
     from keystone import *

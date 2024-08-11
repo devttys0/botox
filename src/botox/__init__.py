@@ -1,9 +1,8 @@
 import sys
 import struct
-
-import architecture
-from elf import ELF
-from exceptions import BotoxException
+from botox.elf import ELF
+import botox.architecture as architecture
+from botox.exceptions import BotoxException
 
 class Botox(object):
 
@@ -80,7 +79,7 @@ class Botox(object):
             # These can be supported in the future, but relative addressing
             # support needs to be added to the payload code in architectures.py.
             if ELF.ET_EXEC != elf.header.e_type:
-                raise BotoxException("Sorry, I only support ELF executable files!")
+                raise BotoxException("Sorry, I only support non-PIE ELF executable files!")
 
             # If no payload was specified, use the built-in pause payload
             if payload is None:
